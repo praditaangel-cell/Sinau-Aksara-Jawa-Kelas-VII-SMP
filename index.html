@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SINAU AKSARA JAWA</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Javanese&family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            overflow: hidden; 
+            touch-action: manipulation;
+            user-select: none;
+            background-color: #fdf6e3;
+        }
+        .aksara-font {
+            font-family: 'Noto Sans Javanese', serif;
+            line-height: 1.5;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(2deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="h-screen w-screen text-gray-800">
+    <div id="root" class="h-full w-full"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo } = React;
+
+        // =========================================================================
+        // LINK MUSIK DARI CATBOX (SUDAH DIPERMANENKAN)
+        // =========================================================================
+        const AUDIO_BG = "https://files.catbox.moe/vv6pid.mp3";
+        
+        const AKSARA_DATA = [
+            { char: 'ꦲ', latin: 'Ha' }, { char: 'ꦤ', latin: 'Na' }, { char: 'ꦕ', latin: 'Ca' }, { char: 'ꦫ', latin: 'Ra' },
+            { char: 'ꦏ', latin: 'Ka' }, { char: 'ꦢ', latin: 'Da' }, { char: 'ꦠ', latin: 'Ta' }, { char: 'ꦱ', latin: 'Sa' },
+            { char: 'ꦮ', latin: 'Wa' }, { char: 'ꦭ', latin: 'La' }, { char: 'ꦥ', latin: 'Pa' }, { char: 'ꦝ', latin: 'Dha' },
+            { char: 'ꦗ', latin: 'Ja' }, { char: 'ꦪ', latin: 'Ya' }, { char: 'ꦚ', latin: 'Nya' }, { char: 'ꦩ', latin: 'Ma' },
+            { char: 'ꦒ', latin: 'Ga' }, { char: 'ꦧ', latin: 'Ba' }, { char: 'ꦛ', latin: 'Tha' }, { char: 'ꦔ', latin: 'Nga' },
+        ];
+
+        const PASANGAN_DATA = AKSARA_DATA.map(item => ({
+            char: ꧀${item.char}, latin: Pasangan ${item.latin}, displayNote: "(Letak di bawah)"
+        }));
+
+        const SANDHANGAN_DATA = [
+            { char: 'ꦶ', latin: 'Wulu (i)' }, { char: 'ꦸ', latin: 'Suku (u)' },
+            { char: 'ꦼ', latin: 'Pepet (e)' }, { char: 'ꦺ', latin: 'Taling (é)' },
+            { char: 'ꦴ', latin: 'Tarung' }, { char: 'ꦂ', latin: 'Layar (r)' },
+            { char: 'ꦁ', latin: 'Cecak (ng)' }, { char: 'ꦃ', latin: 'Wignyan (h)' },
+            { char: '꧀', latin: 'Pangkon' },
+        ];
+
+        const TULADHA_DATA = [
+            { char: 'ꦱꦥꦶ', latin: 'Sapi' }, { char: 'ꦧꦸꦏꦸ', latin: 'Buku' },
+            { char: 'ꦱꦼꦒ', latin: 'Sega (Nasi)' }, { char: 'ꦩꦔꦤ꧀', latin: 'Mangan (Makan)' },
+            { char: 'ꦱꦶꦤꦲꦸ', latin: 'Sinau (Belajar)' }, { char: 'ꦒꦸꦭ', latin: 'Gula' },
+        ];
+
+        // DATA PATAROSAN KUIS (DILOBANKEUN)
+        const QUIZ_DATA = {
+            gampang: [
+                { q: 'ꦲꦤ', a: 'Ana', opts: ['Ana', 'Ani', 'Ina', 'Una'] },
+                { q: 'ꦠꦸꦏꦸ', a: 'Tuku', opts: ['Tuku', 'Buku', 'Kuku', 'Suku'] },
+                { q: 'ꦱꦥ', a: 'Sapa', opts: ['Sapa', 'Sapi', 'Apa', 'Sapu'] },
+                { q: 'ꦩꦠ', a: 'Mata', opts: ['Mata', 'Mati', 'Bata', 'Sata'] },
+                { q: 'ꦧꦥ', a: 'Bapa', opts: ['Bapa', 'Bapi', 'Sapa', 'Lapa'] },
+                { q: 'ꦫꦱ', a: 'Rasa', opts: ['Rasa', 'Rasi', 'Sasa', 'Lasa'] },
+            ],
+            sedheng: [
+                { q: 'ꦱꦼꦒ', a: 'Sega', opts: ['Sega', 'Sela', 'Raga', 'Lega'] },
+                { q: 'ꦱꦫꦺ', a: 'Saré', opts: ['Saré', 'Laré', 'Soro', 'Paré'] },
+                { q: 'ꦏꦸꦫꦸ', a: 'Kuru', opts: ['Kuru', 'Turu', 'Luru', 'Guru'] },
+                { q: 'ꦥꦶꦠꦶꦏ꧀', a: 'Pitik', opts: ['Pitik', 'Batik', 'Sitik', 'Titik'] },
+                { q: 'ꦩꦕꦤ꧀', a: 'Macan', opts: ['Macan', 'Mangan', 'Bacan', 'Papan'] },
+                { q: 'ꦮꦢꦺꦴꦤ꧀', a: 'Wadon', opts: ['Wadon', 'Katon', 'Saron', 'Dakon'] },
+            ],
+            angel: [
+                { q: 'ꦩꦔꦤ꧀ꦱꦼꦒ', a: 'Mangan sega', opts: ['Mangan sega', 'Mangan raga', 'Jajan sega', 'Papan sega'] },
+                { q: 'ꦠꦸꦏꦸꦧꦸꦏꦸ', a: 'Tuku buku', opts: ['Tuku buku', 'Tuku duku', 'Buku kuku', 'Suku buku'] },
+                { q: 'ꦱꦶꦤꦲꦸꦗꦮ', a: 'Sinau Jawa', opts: ['Sinau Jawa', 'Sinau Cara', 'Minau Jawa', 'Tuku Jawa'] },
+                { q: 'ꦤꦸꦭꦶꦱ꧀ꦱꦸꦫꦠ꧀', a: 'Nulis surat', opts: ['Nulis surat', 'Nulis buku', 'Maca surat', 'Tuku surat'] },
+                { q: 'ꦥꦱꦂꦒꦼꦝꦺ', a: 'Pasar gedhé', opts: ['Pasar gedhé', 'Pasar soré', 'Papan gedhé', 'Jajan gedhé'] },
+                { q: 'ꦒꦸꦭꦗꦮ', a: 'Gula jawa', opts: ['Gula jawa', 'Gula batu', 'Mula jawa', 'Tuku jawa'] },
+            ]
+        };
+
+        // DATA TATARUCINGAN NYUSUN KECAP (SUDAH DIREVISI)
+        const PUZZLE_DATA = {
+            gampang: [
+                { hint: 'Sa-pa', parts: [{id:1, t:'ꦥ', o:1}, {id:2, t:'ꦱ', o:0}] },
+                { hint: 'Ra-ja', parts: [{id:1, t:'ꦗ', o:1}, {id:2, t:'ꦫ', o:0}] },
+                { hint: 'Ma-ta', parts: [{id:1, t:'ꦠ', o:1}, {id:2, t:'ꦩ', o:0}] },
+                // PERBAIKAN: Ba-pa -> Ba-pak
+                { hint: 'Ba-pak', parts: [{id:1, t:'ꦥꦏ꧀', o:1}, {id:2, t:'ꦧ', o:0}] },
+                { hint: 'Ta-mu', parts: [{id:1, t:'ꦩꦸ', o:1}, {id:2, t:'ꦠ', o:0}] },
+                // PERBAIKAN: Lu-ka (Bhs. Indonesia) -> Wa-tu (Batu, Bhs. Jawa)
+                { hint: 'Wa-tu', parts: [{id:1, t:'ꦠꦸ', o:1}, {id:2, t:'ꦮ', o:0}] }
+            ],
+            sedheng: [
+                { hint: 'Ce-cak', parts: [{id:1, t:'ꦕꦼ', o:0}, {id:2, t:'ꦕꦏ꧀', o:1}] },
+                { hint: 'Ba-li', parts: [{id:1, t:'ꦭꦶ', o:1}, {id:2, t:'ꦧ', o:0}] },
+                { hint: 'Ba-tik', parts: [{id:1, t:'ꦠꦶꦏ꧀', o:1}, {id:2, t:'ꦧ', o:0}] },
+                { hint: 'Ja-ring', parts: [{id:1, t:'ꦫꦶꦁ', o:1}, {id:2, t:'ꦗ', o:0}] },
+                { hint: 'Ku-cing', parts: [{id:1, t:'ꦕꦶꦁ', o:1}, {id:2, t:'ꦏꦸ', o:0}] },
+                { hint: 'Pe-teng', parts: [{id:1, t:'ꦠꦼꦁ', o:1}, {id:2, t:'ꦥꦼ', o:0}] }
+            ],
+            angel: [
+                { hint: 'Sa-bar', parts: [{id:1, t:'ꦧꦂ', o:1}, {id:2, t:'ꦱ', o:0}] },
+                { hint: 'Me-nyang Pa-sar', parts: [{id:1, t:'ꦥ', o:2}, {id:2, t:'ꦩꦼ', o:0}, {id:3, t:'ꦱꦂ', o:3}, {id:4, t:'ꦚꦁ', o:1}] },
+                { hint: 'Sa-pi Le-mu', parts: [{id:1, t:'ꦱ', o:0}, {id:2, t:'ꦥꦶ', o:1}, {id:3, t:'ꦊ', o:2}, {id:4, t:'ꦩꦸ', o:3}] },
+                { hint: 'Tu-ku Gu-la', parts: [{id:1, t:'ꦠꦸ', o:0}, {id:2, t:'ꦏꦸ', o:1}, {id:3, t:'ꦒꦸ', o:2}, {id:4, t:'ꦭ', o:3}] },
+                // PERBAIKAN: A-yam Ja-go -> Pi-tik Ja-go
+                { hint: 'Pi-tik Ja-go', parts: [{id:1, t:'ꦥꦶ', o:0}, {id:2, t:'ꦠꦶꦏ꧀', o:1}, {id:3, t:'ꦗ', o:2}, {id:4, t:'ꦒꦺꦴ', o:3}] },
+            ]
+        };
+
+        // --- BANTUAN SORA (Sfx) ---
+        const playSound = (type) => {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                const ctx = new AudioContext();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                if (type === 'correct') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(600, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(1000, ctx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                    osc.start(); osc.stop(ctx.currentTime + 0.3);
+                } else if (type === 'wrong') {
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, ctx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                    osc.start(); osc.stop(ctx.currentTime + 0.3);
+                } else if (type === 'click') {
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(800, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.05, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+                    osc.start(); osc.stop(ctx.currentTime + 0.1);
+                }
+            } catch(e) {}
+        };
+
+        const Button = ({ onClick, children, className = "", disabled=false, color="blue" }) => {
+            const colors = {
+                blue: "bg-sky-500 hover:bg-sky-600 border-b-4 border-sky-700",
+                green: "bg-emerald-500 hover:bg-emerald-600 border-b-4 border-emerald-700",
+                red: "bg-rose-500 hover:bg-rose-600 border-b-4 border-rose-700",
+                yellow: "bg-amber-400 hover:bg-amber-500 border-b-4 border-amber-600",
+                purple: "bg-purple-500 hover:bg-purple-600 border-b-4 border-purple-700",
+                gray: "bg-gray-300 border-b-4 border-gray-400 text-gray-500",
+                emerald: "bg-emerald-500 hover:bg-emerald-600 border-b-4 border-emerald-700",
+            };
+            const activeColor = disabled ? colors.gray : colors[color];
+            return (
+                <button
+                    onClick={(e) => { if(!disabled) { playSound('click'); onClick(e); } }}
+                    disabled={disabled}
+                    className={${activeColor} ${className} text-white font-bold py-3 px-6 rounded-2xl shadow-lg transform transition active:translate-y-1 active:border-b-0 disabled:transform-none disabled:border-b-4}
+                >
+                    {children}
+                </button>
+            );
+        };
+
+        const IconBack = () => <span className="text-2xl font-bold">←</span>;
+        const IconHome = () => <span className="text-2xl">🏠</span>;
+
+        // --- KOMPONÉN GAME ---
+        const Flashcards = ({ onBack }) => {
+            const [tab, setTab] = useState('aksara');
+            const [index, setIndex] = useState(0);
+
+            const getData = () => {
+                switch(tab) {
+                    case 'aksara': return AKSARA_DATA;
+                    case 'pasangan': return PASANGAN_DATA;
+                    case 'sandhangan': return SANDHANGAN_DATA;
+                    case 'tuladha': return TULADHA_DATA;
+                    default: return AKSARA_DATA;
+                }
+            };
+            
+            const data = getData();
+            const currentItem = data[index];
+            const next = () => setIndex((prev) => (prev + 1) % data.length);
+            const prev = () => setIndex((prev) => (prev - 1 + data.length) % data.length);
+            const changeTab = (t) => { setTab(t); setIndex(0); };
+
+            return (
+                <div className="flex flex-col items-center h-full p-4 relative animate-fade-in bg-orange-50">
+                    <div className="w-full flex justify-between items-center mb-4">
+                        <Button color="red" onClick={onBack} className="p-2 px-4 rounded-xl"><IconBack /></Button>
+                        <h2 className="text-2xl font-bold text-orange-800">SINAU</h2>
+                        <div className="w-12"></div>
+                    </div>
+                    <div className="flex gap-2 mb-4 overflow-x-auto w-full justify-start md:justify-center p-2 no-scrollbar">
+                        {['aksara','pasangan','sandhangan','tuladha'].map(t => (
+                            <button key={t} onClick={()=>changeTab(t)} className={px-4 py-2 rounded-full whitespace-nowrap font-bold capitalize ${tab===t?'bg-orange-500 text-white':'bg-white text-orange-500 border border-orange-200'}}>{t}</button>
+                        ))}
+                    </div>
+                    <div className="flex-1 flex flex-col justify-center w-full max-w-md">
+                        <div className="bg-white p-8 rounded-3xl shadow-2xl w-full aspect-square flex flex-col items-center justify-center border-8 border-orange-200 relative overflow-hidden">
+                             <div className="absolute top-0 left-0 w-full h-4 bg-orange-200"></div>
+                            <div className="aksara-font text-8xl md:text-9xl mb-6 text-center text-orange-900 leading-snug">
+                                {currentItem.char}
+                            </div>
+                            <h2 className="text-3xl font-bold text-gray-700">{currentItem.latin}</h2>
+                            {currentItem.displayNote && <p className="text-gray-400 text-sm mt-2">{currentItem.displayNote}</p>}
+                        </div>
+                        <div className="flex gap-8 mt-8 w-full justify-between items-center">
+                            <Button color="yellow" onClick={prev} className="w-20 rounded-full">←</Button>
+                            <div className="text-lg font-bold text-orange-800 bg-orange-100 px-4 py-1 rounded-full">{index + 1} / {data.length}</div>
+                            <Button color="yellow" onClick={next} className="w-20 rounded-full">→</Button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const CatcherGame = ({ onBack, isTwoPlayer, level }) => {
+            const [gameState, setGameState] = useState('playing'); 
+            const [timeLeft, setTimeLeft] = useState(60);
+            const [targetChar, setTargetChar] = useState(AKSARA_DATA[0]);
+            const targetCharRef = useRef(targetChar); 
+            const [fallingItems, setFallingItems] = useState([]);
+            const [p1Score, setP1Score] = useState(0);
+            const [p1Lives, setP1Lives] = useState(3);
+            const [p2Score, setP2Score] = useState(0);
+            const [p2Lives, setP2Lives] = useState(3);
+
+            useEffect(() => { targetCharRef.current = targetChar; }, [targetChar]);
+
+            useEffect(() => {
+                if (gameState !== 'playing') return;
+                let spawnChance = level === 'gampang' ? 0.03 : level === 'sedheng' ? 0.06 : 0.12;  
+                let baseSpeed = level === 'gampang' ? 0.15 : level === 'sedheng' ? 0.35 : 0.6;    
+
+                const timer = setInterval(() => {
+                    setTimeLeft(prev => { if (prev <= 1) { setGameState('gameover'); return 0; } return prev - 1; });
+                }, 1000);
+
+                const gameLoop = setInterval(() => {
+                    setFallingItems(prev => {
+                        if (Math.random() < spawnChance) { 
+                            const isTarget = Math.random() < 0.40;
+                            const charData = isTarget ? targetCharRef.current : AKSARA_DATA[Math.floor(Math.random() * AKSARA_DATA.length)];
+                            return [...prev, { id: Date.now() + Math.random(), x: 10 + Math.random() * 80, y: -15, charData: charData, speed: baseSpeed + (Math.random() * 0.2) }];
+                        }
+                        return prev.map(item => ({ ...item, y: item.y + item.speed })).filter(item => item.y < 110);
+                    });
+                }, 16);
+                return () => { clearInterval(timer); clearInterval(gameLoop); };
+            }, [gameState, level]);
+
+            const handleTap = (item, player) => {
+                if (gameState !== 'playing') return;
+                setFallingItems(prev => prev.filter(i => i.id !== item.id));
+
+                if (item.charData.char === targetChar.char) {
+                    playSound('correct');
+                    if (player === 1) setP1Score(s => s + 10); else setP2Score(s => s + 10);
+                    setTargetChar(AKSARA_DATA[Math.floor(Math.random()*AKSARA_DATA.length)]);
+                } else {
+                    playSound('wrong');
+                    if (player === 1) setP1Lives(l => { if (l-1 <= 0) setGameState('gameover'); return l-1; });
+                    else setP2Lives(l => { if (l-1 <= 0) setGameState('gameover'); return l-1; });
+                }
+            };
+
+            if (gameState === 'gameover') {
+                return (
+                    <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center text-white z-50">
+                        <h2 className="text-4xl font-bold mb-4 text-sky-400">WAKTU HABIS!</h2>
+                        <div className="bg-white/10 p-6 rounded-xl text-center mb-6 w-64">
+                            <p className="text-lg">Pemain 1: {p1Score}</p>
+                            {isTwoPlayer && <p className="text-lg">Pemain 2: {p2Score}</p>}
+                            {isTwoPlayer && <p className="mt-4 text-yellow-300 font-bold text-xl">{p1Score > p2Score ? "P1 MENANG!" : p1Score < p2Score ? "P2 MENANG!" : "SERI!"}</p>}
+                        </div>
+                        <Button color="blue" onClick={onBack}>Kembali</Button>
+                    </div>
+                );
+            }
+
+            const GameArea = ({ playerNum }) => (
+                <div className={relative h-full overflow-hidden border-r-2 border-sky-300 bg-sky-50 ${isTwoPlayer ? 'w-1/2' : 'w-full'}}>
+                    {fallingItems.map(item => (
+                        <div key={item.id} onClick={(e) => { e.stopPropagation(); handleTap(item, playerNum); }}
+                            className="absolute cursor-pointer transform hover:scale-110 active:scale-95 transition-transform"
+                            style={{ left: ${item.x}%, top: ${item.y}% }}>
+                            <div className="w-16 h-16 bg-white rounded-full shadow-lg border-2 border-sky-200 flex items-center justify-center">
+                                <span className="aksara-font text-3xl select-none">{item.charData.char}</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+
+            return (
+                <div className="h-full flex flex-col">
+                    <div className="h-20 bg-sky-600 text-white flex items-center justify-between px-4 shadow-md z-10">
+                        <button onClick={onBack}><IconBack/></button>
+                        <div className="flex flex-col items-center">
+                            <div className="text-xs uppercase font-bold text-sky-200">Cari Aksara:</div>
+                            <div className="bg-white text-sky-800 px-6 py-1 rounded-full text-3xl font-bold aksara-font border-4 border-sky-300 shadow-inner">{targetChar.char}</div>
+                        </div>
+                        <div className={font-mono px-3 py-1 rounded border ${timeLeft <= 10 ? 'bg-red-500 border-red-200 animate-pulse' : 'bg-sky-800 border-sky-500'}}>{timeLeft}s</div>
+                    </div>
+                    <div className="flex bg-sky-700 text-white py-2 px-4 text-sm justify-between shadow-inner">
+                        <div className="flex gap-4"><span>P1 Skor: <b>{p1Score}</b></span><span className="text-red-300">{'❤'.repeat(p1Lives)}</span></div>
+                        {isTwoPlayer && <div className="flex gap-4"><span className="text-red-300">{'❤'.repeat(p2Lives)}</span><span>P2 Skor: <b>{p2Score}</b></span></div>}
+                    </div>
+                    <div className="flex-1 flex relative">
+                        <GameArea playerNum={1} />
+                        {isTwoPlayer && <GameArea playerNum={2} />}
+                    </div>
+                </div>
+            );
+        };
+
+        // GAME KUIS - AYEUNA NGADUKUNG 2 PAMAÉN & 5 PATAROSAN
+        const QuizGame = ({ onBack, level, isTwoPlayer }) => {
+            const [gameKey, setGameKey] = useState(0);
+
+            return (
+                <div className="h-full w-full flex flex-col bg-purple-50">
+                    <div className="h-16 bg-purple-600 flex items-center justify-between px-4 text-white shadow-lg z-10">
+                        <button onClick={onBack}><IconBack/></button>
+                        <h2 className="font-bold text-lg uppercase">Maos Aksara</h2>
+                        <div className="w-8"></div>
+                    </div>
+                    <div className={flex-1 flex ${isTwoPlayer ? 'flex-col md:flex-row md:divide-x-4 divide-purple-700' : 'flex-col'}}>
+                        <QuizBoard key={p1-${gameKey}} player={1} level={level} onBack={onBack} />
+                        {isTwoPlayer && <div className="h-1 md:h-full bg-purple-700 w-full md:w-1"></div>}
+                        {isTwoPlayer && <QuizBoard key={p2-${gameKey}} player={2} level={level} onBack={onBack} />}
+                    </div>
+                </div>
+            );
+        };
+
+        const QuizBoard = ({ player, level, onBack }) => {
+            const shuffle = (array) => [...array].sort(() => Math.random() - 0.5);
+            // Ambil 5 Soal
+            const questions = useMemo(() => {
+                const raw = shuffle(QUIZ_DATA[level] || QUIZ_DATA['gampang']).slice(0, 5);
+                return raw.map(q => ({ ...q, shuffledOpts: shuffle(q.opts) }));
+            }, [level]);
+
+            const [currentQ, setCurrentQ] = useState(0);
+            const [score, setScore] = useState(0);
+            const [lives, setLives] = useState(3);
+            const [finished, setFinished] = useState(false);
+
+            const handleAnswer = (ans) => {
+                if(finished) return;
+                if (ans === questions[currentQ].a) {
+                    setScore(s => s + 20); // 5 x 20 = 100 Poin
+                    playSound('correct');
+                } else {
+                    playSound('wrong'); 
+                    setLives(l => l - 1);
+                    if (lives - 1 <= 0) { setFinished(true); return; }
+                }
+                if (currentQ < questions.length - 1) { 
+                    setCurrentQ(q => q + 1); 
+                } else { 
+                    setFinished(true); 
+                }
+            };
+
+            if (finished) {
+                return (
+                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center animate-fade-in bg-purple-50">
+                        <h3 className="text-2xl font-bold text-purple-800 mb-2">{lives <= 0 ? "Kalah!" : Pemain ${player} Selesai!}</h3>
+                        <p className="text-gray-600 mb-1">Skor Akhir</p>
+                        <p className="text-6xl font-bold text-purple-600 mb-4">{score}</p>
+                        <p className="text-purple-800 font-bold mb-8">
+                            {score === 100 ? "SEMPURNA! 🌟" : score >= 60 ? "BAGUS! 💪" : "BELAJAR LAGI YA! 📚"}
+                        </p>
+                        <div className="flex flex-col gap-3 w-full max-w-xs">
+                            <Button color="purple" onClick={onBack}>Kembali</Button>
+                        </div>
+                    </div>
+                );
+            }
+
+            const qData = questions[currentQ];
+            return (
+                <div className={flex-1 flex flex-col p-4 ${player===1?'bg-purple-50':'bg-purple-100'} overflow-y-auto}>
+                    <div className="flex justify-between items-center mb-2">
+                        <span className="font-bold text-purple-800 bg-purple-200 px-3 py-1 rounded-full">P{player}</span>
+                        <div className="text-red-500 text-sm tracking-widest">{'❤'.repeat(lives)}</div>
+                        <span className="font-bold text-purple-800 bg-purple-200 px-3 py-1 rounded-full">{score} Pt</span>
+                    </div>
+                    
+                    <div className="flex-1 flex flex-col items-center justify-center">
+                        <div className="font-bold text-purple-800 mb-2">Soal {currentQ+1}/5</div>
+                        <div className="bg-white p-4 rounded-3xl shadow-md w-full max-w-lg text-center mb-4 border-b-4 border-purple-300">
+                            <h1 className="aksara-font text-5xl md:text-6xl text-purple-900 leading-tight">{qData.q}</h1>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 w-full max-w-lg">
+                            {qData.shuffledOpts.map((opt, i) => (
+                                <Button key={i} color="purple" onClick={() => handleAnswer(opt)} className="text-sm md:text-lg py-3">{opt}</Button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // GAME NYUSUN - WAKTU DITAMBAH JADI 90 DETIK KUSABAB AYA 5 PATAROSAN
+        const ArrangeGame = ({ onBack, level, isTwoPlayer }) => {
+            const [gameKey, setGameKey] = useState(0);
+            const [timeLeft, setTimeLeft] = useState(90);
+
+            useEffect(() => {
+                if (timeLeft > 0) { const timer = setTimeout(() => setTimeLeft(t => t - 1), 1000); return () => clearTimeout(timer); }
+            }, [timeLeft]);
+
+            return (
+                <div className="h-full w-full flex flex-col bg-emerald-50">
+                    <div className="h-16 bg-emerald-600 flex items-center justify-between px-4 text-white shadow-lg z-10">
+                        <button onClick={onBack}><IconBack/></button>
+                        <h2 className="font-bold text-lg">NYUSUN UKARA</h2>
+                        <div className={font-mono px-3 py-1 rounded border font-bold ${timeLeft <= 10 ? 'bg-red-500 border-red-200 animate-pulse text-white' : 'bg-emerald-800 border-emerald-400 text-white'}}>⏱ {timeLeft}s</div>
+                    </div>
+                    <div className={flex-1 flex ${isTwoPlayer ? 'flex-col md:flex-row md:divide-x-4 divide-emerald-700' : 'flex-col'}}>
+                        <ArrangeBoard key={p1-${gameKey}} player={1} level={level} timeIsUp={timeLeft === 0} onBack={onBack} />
+                        {isTwoPlayer && <div className="h-1 md:h-full bg-emerald-700 w-full md:w-1"></div>}
+                        {isTwoPlayer && <ArrangeBoard key={p2-${gameKey}} player={2} level={level} timeIsUp={timeLeft === 0} onBack={onBack} />}
+                    </div>
+                </div>
+            );
+        };
+
+        const ArrangeBoard = ({ player, level, timeIsUp, onBack }) => {
+            const [puzzles, setPuzzles] = useState([]);
+            const [idx, setIdx] = useState(0);
+            const [userOrder, setUserOrder] = useState([]); 
+            const [availableParts, setAvailableParts] = useState([]);
+            const [usedIds, setUsedIds] = useState([]); 
+            const [score, setScore] = useState(0);
+            const [finished, setFinished] = useState(false);
+            const [status, setStatus] = useState("playing"); 
+
+            useEffect(() => {
+                const raw = JSON.parse(JSON.stringify(PUZZLE_DATA[level] || PUZZLE_DATA['gampang']));
+                // Ambil 5 Soal
+                setPuzzles(raw.sort(() => 0.5 - Math.random()).slice(0, 5));
+            }, [level]);
+
+            useEffect(() => {
+                if (puzzles.length > 0) {
+                    if (idx < puzzles.length) {
+                        setAvailableParts([...puzzles[idx].parts].sort(() => 0.5 - Math.random()));
+                        setUserOrder([]); setUsedIds([]); setStatus("playing");
+                    } else { setFinished(true); }
+                }
+            }, [idx, puzzles]);
+
+            const handleSelect = (part) => {
+                if (status !== "playing" || timeIsUp) return;
+                const newOrder = [...userOrder, part];
+                setUserOrder(newOrder); setUsedIds([...usedIds, part.id]); 
+
+                if (newOrder.length === puzzles[idx].parts.length) {
+                    if (newOrder.every((p, i) => p.o === i)) {
+                        playSound('correct'); 
+                        setScore(s => s + 20); // 5 x 20 = 100 Poin
+                        setStatus("correct");
+                        setTimeout(() => setIdx(i => i + 1), 1200); 
+                    } else {
+                        playSound('wrong'); setStatus("wrong");
+                        setTimeout(() => { setUserOrder([]); setUsedIds([]); setStatus("playing"); }, 1000);
+                    }
+                }
+            };
+
+            if (finished || timeIsUp || !puzzles[idx]) {
+                return (
+                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center animate-fade-in bg-emerald-50">
+                        <h3 className="text-2xl font-bold text-emerald-800 mb-2">{timeIsUp && !finished ? "WAKTU HABIS!" : Pemain ${player} Selesai!}</h3>
+                        <p className="text-gray-600 mb-1">Skor Akhir</p>
+                        <p className="text-6xl font-bold text-emerald-600 mb-4">{score}</p>
+                        <p className="text-emerald-800 font-bold mb-8">
+                            {score === 100 ? "SEMPURNA! 🌟" : score >= 60 ? "BAGUS! 💪" : "BELAJAR LAGI YA! 📚"}
+                        </p>
+                        <div className="flex flex-col gap-3 w-full max-w-xs"><Button color="red" onClick={onBack}>Kembali</Button></div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className={flex-1 flex flex-col p-4 ${player===1?'bg-emerald-50':'bg-emerald-100'} overflow-y-auto}>
+                    <div className="flex justify-between items-center mb-4">
+                        <span className="font-bold text-emerald-800 bg-emerald-200 px-3 py-1 rounded-full">P{player}</span>
+                        <div className="font-bold text-emerald-800">Soal {idx+1}/5</div>
+                        <span className="font-bold text-emerald-800 bg-emerald-200 px-3 py-1 rounded-full">{score} Pt</span>
+                    </div>
+                    <div className="bg-white rounded-2xl p-4 shadow-sm mb-4 text-center border-t-4 border-emerald-400">
+                        <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">Susun Menjadi:</p>
+                        <h3 className="text-2xl font-bold text-gray-800">"{puzzles[idx].hint}"</h3>
+                    </div>
+                    <div className={rounded-xl p-3 min-h-[70px] flex flex-wrap gap-2 justify-center items-center mb-4 border-2 border-dashed transition-colors ${status === 'correct' ? 'bg-green-100 border-green-500' : status === 'wrong' ? 'bg-red-100 border-red-500' : 'bg-gray-100 border-gray-400'}}>
+                        {userOrder.map((part, i) => (<div key={i} className="bg-emerald-600 text-white px-3 py-2 rounded shadow aksara-font text-2xl animate-fade-in">{part.t}</div>))}
+                        {userOrder.length === 0 && <span className="text-gray-400 text-sm italic">Ketuk potongan di bawah...</span>}
+                    </div>
+                    <div className="flex flex-wrap gap-3 justify-center">
+                        {availableParts.map(part => {
+                            const isUsed = usedIds.includes(part.id);
+                            return (
+                                <button key={part.id} onClick={() => !isUsed && handleSelect(part)} disabled={isUsed}
+                                    className={p-3 rounded-lg shadow-sm border-b-4 transition-all min-w-[60px] ${isUsed ? 'bg-gray-200 border-gray-300 text-gray-400 cursor-not-allowed scale-95' : 'bg-white border-emerald-200 hover:bg-emerald-50 active:scale-95 text-emerald-900'}}>
+                                    <span className="aksara-font text-3xl">{part.t}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- APLIKASI UTAMA ---
+        const App = () => {
+            const [screen, setScreen] = useState('home');
+            const [bgMusic, setBgMusic] = useState(false);
+            const audioRef = useRef(null);
+            
+            const [level, setLevel] = useState('gampang');
+            const [is2P, setIs2P] = useState(false);
+
+            // =========================================================================
+            // TÉHNIK GLOBAL UNLOCKER SANGKAN AUDIO PASTI JALAN
+            // =========================================================================
+            useEffect(() => {
+                const forcePlayAudio = () => {
+                    if (audioRef.current && audioRef.current.paused) {
+                        audioRef.current.volume = 0.4;
+                        const promise = audioRef.current.play();
+                        if (promise !== undefined) {
+                            promise.then(() => {
+                                setBgMusic(true);
+                            }).catch(e => console.log("Menunggu interaksi", e));
+                        }
+                    }
+                    window.removeEventListener('click', forcePlayAudio);
+                    window.removeEventListener('touchstart', forcePlayAudio);
+                };
+
+                window.addEventListener('click', forcePlayAudio);
+                window.addEventListener('touchstart', forcePlayAudio);
+
+                return () => {
+                    window.removeEventListener('click', forcePlayAudio);
+                    window.removeEventListener('touchstart', forcePlayAudio);
+                };
+            }, []);
+
+
+            const handleStartGame = () => {
+                if (audioRef.current && audioRef.current.paused) {
+                    audioRef.current.play().then(()=>setBgMusic(true)).catch(e=>{});
+                }
+                setScreen('topics');
+            };
+
+            const toggleMusic = () => {
+                if (audioRef.current) {
+                    if (bgMusic) {
+                        audioRef.current.pause();
+                        setBgMusic(false);
+                    } else {
+                        audioRef.current.play().then(() => setBgMusic(true)).catch(e => alert("Ketuk layar sekali lagi lalu coba nyalakan musik."));
+                    }
+                }
+            };
+
+            const renderScreen = () => {
+                switch(screen) {
+                    case 'home':
+                        return (
+                            <div className="relative h-full flex flex-col items-center justify-center p-6 text-center overflow-hidden">
+                                <div className="absolute top-10 left-10 text-8xl text-orange-200 opacity-50 aksara-font animate-float pointer-events-none">ꦲ</div>
+                                <div className="absolute bottom-10 right-10 text-8xl text-orange-200 opacity-50 aksara-font animate-float pointer-events-none" style={{animationDelay:'1s'}}>ꦤ</div>
+                                <h1 className="text-6xl md:text-8xl font-black text-amber-600 drop-shadow-md tracking-tighter mb-2">SINAU</h1>
+                                <div className="bg-amber-100 text-amber-800 px-6 py-2 rounded-full font-bold text-xl mb-8 border-2 border-amber-300">AKSARA JAWA</div>
+                                <div className="bg-white/80 backdrop-blur p-8 rounded-3xl shadow-xl border-4 border-amber-200 w-full max-w-sm hover:scale-105 transition duration-300">
+                                    <Button color="blue" onClick={handleStartGame} className="w-full text-2xl py-4">MULAI</Button>
+                                    <div className="mt-4 text-sm text-gray-500">
+                                        <p>Karakit dening:</p>
+                                        <p className="font-bold text-gray-800">Pradita Angel Putri Admojo</p>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    case 'topics':
+                        return (
+                            <div className="h-full flex flex-col p-6 animate-fade-in bg-amber-50">
+                                <div className="flex justify-between items-center mb-6">
+                                    <Button color="red" onClick={()=>setScreen('home')} className="p-2 rounded-xl"><IconHome/></Button>
+                                    <h2 className="text-2xl font-bold text-amber-800">Menu Utama</h2>
+                                    <div className="w-10"></div>
+                                </div>
+                                <div className="grid grid-cols-1 gap-4 flex-1 overflow-y-auto no-scrollbar pb-10">
+                                    <MenuCard icon="📖" title="Sinau" desc="Flashcard Aksara & Tuladha" color="orange" onClick={()=>setScreen('game_flashcard')} />
+                                    <MenuCard icon="🎮" title="Nangkep Aksara" desc="Game Ketangkasan" color="sky" onClick={()=>setScreen('config_catcher')} />
+                                    <MenuCard icon="📝" title="Maos (Kuis)" desc="Latihan Membaca" color="purple" onClick={()=>setScreen('config_quiz')} />
+                                    <MenuCard icon="🧩" title="Nyusun Aksara" desc="Menyusun Kalimat" color="emerald" onClick={()=>setScreen('config_arrange')} />
+                                </div>
+                            </div>
+                        );
+                    case 'game_flashcard': return <Flashcards onBack={()=>setScreen('topics')} />;
+                    
+                    case 'config_catcher': return <ConfigScreen title="Nangkep Aksara" showLvl={true} onStart={(p,l)=>{setIs2P(p===2); setLevel(l); setScreen('game_catcher')}} onBack={()=>setScreen('topics')} />;
+                    case 'game_catcher': return <CatcherGame level={level} isTwoPlayer={is2P} onBack={()=>setScreen('topics')} />;
+                    
+                    case 'config_quiz': return <ConfigScreen title="Maos Aksara" show2P={true} onStart={(p,l)=>{setIs2P(p===2); setLevel(l); setScreen('game_quiz')}} onBack={()=>setScreen('topics')} />;
+                    case 'game_quiz': return <QuizGame level={level} isTwoPlayer={is2P} onBack={()=>setScreen('topics')} />;
+                    
+                    case 'config_arrange': return <ConfigScreen title="Nyusun Aksara" onStart={(p,l)=>{setIs2P(p===2); setLevel(l); setScreen('game_arrange')}} onBack={()=>setScreen('topics')} />;
+                    case 'game_arrange': return <ArrangeGame level={level} isTwoPlayer={is2P} onBack={()=>setScreen('topics')} />;
+                }
+            }
+
+            return (
+                <div className="relative h-full w-full max-w-xl mx-auto bg-amber-50 shadow-2xl overflow-hidden border-x border-amber-200">
+                    <audio 
+                        ref={audioRef} 
+                        src={AUDIO_BG} 
+                        loop 
+                        preload="auto"
+                        playsInline
+                    />
+                    
+                    <div className="absolute top-4 right-4 z-50">
+                        <button onClick={toggleMusic} className="bg-white/90 p-2 rounded-full shadow text-xl hover:scale-110 transition active:scale-90 border border-gray-200 flex items-center justify-center">
+                            {bgMusic ? '🔊' : '🔇'}
+                        </button>
+                    </div>
+                    {renderScreen()}
+                </div>
+            );
+        };
+
+        const MenuCard = ({ icon, title, desc, color, onClick }) => {
+            const colors = {
+                orange: "bg-orange-100 border-orange-300 text-orange-800 hover:bg-orange-200",
+                sky: "bg-sky-100 border-sky-300 text-sky-800 hover:bg-sky-200",
+                purple: "bg-purple-100 border-purple-300 text-purple-800 hover:bg-purple-200",
+                emerald: "bg-emerald-100 border-emerald-300 text-emerald-800 hover:bg-emerald-200",
+            };
+            return (
+                <div onClick={onClick} className={${colors[color]} p-4 rounded-3xl border-4 flex items-center gap-4 cursor-pointer active:scale-95 transition shadow-sm}>
+                    <div className="text-4xl">{icon}</div>
+                    <div><h3 className="text-xl font-bold">{title}</h3><p className="text-sm opacity-70">{desc}</p></div>
+                </div>
+            )
+        }
+
+        const ConfigScreen = ({ title, showLvl=true, show2P=true, onStart, onBack }) => {
+            const [p, setP] = useState(1); const [l, setL] = useState('gampang');
+            return (
+                <div className="h-full flex flex-col p-6 animate-fade-in items-center justify-center">
+                    <div className="w-full mb-8"><Button color="red" onClick={onBack} className="p-2 rounded-xl"><IconBack/></Button></div>
+                    <h2 className="text-3xl font-bold text-gray-800 mb-8">{title}</h2>
+                    <div className="bg-white p-6 rounded-3xl shadow-xl w-full max-w-sm space-y-6 border-4 border-gray-100">
+                        {show2P && (
+                            <div>
+                                <label className="block text-gray-500 font-bold mb-2">Pemain</label>
+                                <div className="flex gap-2">
+                                    {[1,2].map(num => (<button key={num} onClick={()=>setP(num)} className={flex-1 py-3 rounded-xl border-b-4 font-bold ${p===num?'bg-blue-500 text-white border-blue-700':'bg-gray-100 border-gray-300 text-gray-400'}}>{num} Player</button>))}
+                                </div>
+                            </div>
+                        )}
+                        {showLvl && (
+                            <div>
+                                <label className="block text-gray-500 font-bold mb-2">Level</label>
+                                <div className="space-y-2">
+                                    {['gampang','sedheng','angel'].map(lvl => (<button key={lvl} onClick={()=>setL(lvl)} className={w-full py-3 px-4 rounded-xl border-b-4 font-bold text-left capitalize ${l===lvl?'bg-amber-400 text-white border-amber-600':'bg-gray-100 border-gray-300 text-gray-400'}}>{lvl === 'gampang' ? '🐣 Gampang' : lvl === 'sedheng' ? '🐓 Sedheng' : '🔥 Angel'}</button>))}
+                                </div>
+                            </div>
+                        )}
+                        <Button onClick={()=>onStart(p,l)} className="w-full mt-4 text-lg">MULAI MAIN!</Button>
+                    </div>
+                </div>
+            )
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
